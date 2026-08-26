@@ -216,11 +216,19 @@ class Monitor extends BeanModel {
             saveResponse: this.getSaveResponse(),
             saveErrorResponse: this.getSaveErrorResponse(),
             responseMaxLength: this.response_max_length ?? RESPONSE_BODY_LENGTH_DEFAULT,
+
+            // Xray options
+            xrayProtocol: this.xray_protocol,
+            xrayTestUrl: this.xray_test_url,
+            xrayCheckExitIp: Boolean(this.xray_check_exit_ip),
+            xraySubUrl: this.xray_sub_url,
+            xraySubUserAgent: this.xray_sub_user_agent,
         };
 
         if (includeSensitiveData) {
             data = {
                 ...data,
+                xrayConfig: this.xray_config,
                 headers: this.headers,
                 body: this.body,
                 grpcBody: this.grpcBody,

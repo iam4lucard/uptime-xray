@@ -782,6 +782,24 @@ let needSetup = false;
                 if (monitor.retryOnlyOnStatusCodeFailure !== undefined) {
                     bean.retry_only_on_status_code_failure = monitor.retryOnlyOnStatusCodeFailure;
                 }
+                if (monitor.xrayConfig !== undefined) {
+                    bean.xray_config = monitor.xrayConfig;
+                }
+                if (monitor.xrayProtocol !== undefined) {
+                    bean.xray_protocol = monitor.xrayProtocol;
+                }
+                if (monitor.xrayTestUrl !== undefined) {
+                    bean.xray_test_url = monitor.xrayTestUrl;
+                }
+                if (monitor.xrayCheckExitIp !== undefined) {
+                    bean.xray_check_exit_ip = monitor.xrayCheckExitIp;
+                }
+                if (monitor.xraySubUrl !== undefined) {
+                    bean.xray_sub_url = monitor.xraySubUrl;
+                }
+                if (monitor.xraySubUserAgent !== undefined) {
+                    bean.xray_sub_user_agent = monitor.xraySubUserAgent;
+                }
                 bean.user_id = socket.userID;
 
                 bean.validate();
@@ -960,6 +978,14 @@ let needSetup = false;
                 bean.ping_numeric = monitor.ping_numeric;
                 bean.ping_count = monitor.ping_count;
                 bean.ping_per_request_timeout = monitor.ping_per_request_timeout;
+
+                // Xray options
+                bean.xray_config = monitor.xrayConfig;
+                bean.xray_protocol = monitor.xrayProtocol;
+                bean.xray_test_url = monitor.xrayTestUrl;
+                bean.xray_check_exit_ip = monitor.xrayCheckExitIp;
+                bean.xray_sub_url = monitor.xraySubUrl;
+                bean.xray_sub_user_agent = monitor.xraySubUserAgent;
 
                 bean.validate();
 

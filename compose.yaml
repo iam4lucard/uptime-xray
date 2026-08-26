@@ -1,6 +1,10 @@
 services:
-  uptime-kuma:
-    image: louislam/uptime-kuma:2
+  uptime-xray:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: uptime-xray:latest
+    container_name: uptime-xray
     restart: unless-stopped
     volumes:
       - ./data:/app/data

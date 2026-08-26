@@ -62,6 +62,15 @@
                                         </option>
                                     </optgroup>
 
+                                    <optgroup :label="$t('Xray-core / Proxy')">
+                                        <option value="xray">
+                                            {{ $t("Xray Config (VLESS / VMess / Trojan / SS / Hy2)") }}
+                                        </option>
+                                        <option value="xray-subscription">
+                                            {{ $t("Xray Subscription") }}
+                                        </option>
+                                    </optgroup>
+
                                     <optgroup :label="$t('monitorTypeSpecial')">
                                         <option value="group">
                                             {{ $t("Group") }}
@@ -241,6 +250,119 @@
                                         class="form-control"
                                         :placeholder="headersPlaceholder"
                                     ></textarea>
+                                </div>
+                            </template>
+
+                            <!-- Xray Config Monitor -->
+                            <template v-if="monitor.type === 'xray'">
+                                <h2 class="mt-4 mb-2">{{ $t("Xray Configuration") }}</h2>
+
+                                <div class="my-3">
+                                    <label for="xray_config" class="form-label">{{ $t("Xray Link / JSON Config") }}</label>
+                                    <textarea
+                                        id="xray_config"
+                                        v-model="monitor.xrayConfig"
+                                        class="form-control font-monospace"
+                                        rows="4"
+                                        placeholder="vless://... or vmess://... or trojan://... or ss://... or { &quot;outbounds&quot;: [...] }"
+                                        required
+                                        @input="onXrayConfigInput"
+                                    ></textarea>
+                                    <div class="form-text">
+                                        {{ $t("XrayConfigHelp") }}
+                                    </div>
+                                </div>
+
+                                <!-- Parsed Node Summary Card -->
+                                <div v-if="xrayParsedInfo" class="alert alert-info py-2 px-3 mb-3">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <span class="badge bg-primary me-2">{{ xrayParsedInfo.protocol?.toUpperCase() }}</span>
+                                            <strong>{{ xrayParsedInfo.remark || xrayParsedInfo.server }}</strong>
+                                        </div>
+                                        <small class="text-muted">{{ xrayParsedInfo.server }}:{{ xrayParsedInfo.port }}</small>
+                                    </div>
+                                </div>
+
+                                <!-- Target Probe URL -->
+                                <div class="my-3">
+                                    <label for="xray_test_url" class="form-label">{{ $t("Target Probe URL") }}</label>
+                                    <input
+                                        id="xray_test_url"
+                                        v-model="monitor.xrayTestUrl"
+                                        type="url"
+                                        class="form-control"
+                                        placeholder="http://cp.cloudflare.com/generate_204"
+                                        required
+                                    />
+                                    <div class="mt-2 d-flex gap-2">
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-secondary btn-sm"
+                                            @click="monitor.xrayTestUrl = 'http://cp.cloudflare.com/generate_204'"
+                                        >
+                                            Cloudflare 204
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-secondary btn-sm"
+                                            @click="monitor.xrayTestUrl = 'http://www.google.com/generate_204'"
+                                        >
+                                            Google 204
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-secondary btn-sm"
+                                            @click="monitor.xrayTestUrl = 'http://connectivitycheck.gstatic.com/generate_204'"
+                                        >
+                                            Gstatic 204
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Detect Exit IP & Location -->
+                                <div class="my-3 form-check">
+                                    <input
+                                        id="xray_check_exit_ip"
+                                        v-model="monitor.xrayCheckExitIp"
+                                        type="checkbox"
+                                        class="form-check-input"
+                                    />
+                                    <label for="xray_check_exit_ip" class="form-check-label">{{ $t("Detect Exit IP & Location on Heartbeat") }}</label>
+                                </div>
+                            </template>
+
+                            <!-- Xray Subscription Monitor -->
+                            <template v-if="monitor.type === 'xray-subscription'">
+                                <h2 class="mt-4 mb-2">{{ $t("Xray Subscription Options") }}</h2>
+
+                                <div class="my-3">
+                                    <label for="xray_sub_url" class="form-label">{{ $t("Subscription URL") }}</label>
+                                    <input
+                                        id="xray_sub_url"
+                                        v-model="monitor.xraySubUrl"
+                                        type="url"
+                                        class="form-control"
+                                        placeholder="https://example.com/api/v1/client/subscribe?token=..."
+                                        required
+                                    />
+                                    <div class="form-text">
+                                        {{ $t("XraySubHelp") }}
+                                    </div>
+                                </div>
+
+                                <div class="my-3">
+                                    <label for="xray_sub_user_agent" class="form-label">{{ $t("Client User-Agent") }}</label>
+                                    <input
+                                        id="xray_sub_user_agent"
+                                        v-model="monitor.xraySubUserAgent"
+                                        type="text"
+                                        class="form-control"
+                                        placeholder="v2rayng/1.8.5"
+                                    />
+                                    <div class="form-text">
+                                        {{ $t("XraySubUAHelp") }}
+                                    </div>
                                 </div>
                             </template>
 
@@ -3268,6 +3390,14 @@ const defaultValueList = {
         url: "wss://",
         accepted_statuscodes: ["1000"],
     },
+    xray: {
+        xrayTestUrl: "http://cp.cloudflare.com/generate_204",
+        accepted_statuscodes: ["200-299", "204"],
+    },
+    "xray-subscription": {
+        xraySubUserAgent: "v2rayng/1.8.5",
+        accepted_statuscodes: ["200-299"],
+    },
 };
 
 const monitorDefaults = {
@@ -3332,6 +3462,12 @@ const monitorDefaults = {
     ntpStratumThreshold: 5,
     ntpTimeOffsetThreshold: 1000,
     ntpRootDispersionThreshold: 500,
+    xrayConfig: "",
+    xrayProtocol: "",
+    xrayTestUrl: "http://cp.cloudflare.com/generate_204",
+    xrayCheckExitIp: false,
+    xraySubUrl: "",
+    xraySubUserAgent: "v2rayng/1.8.5",
 };
 
 export default {
@@ -3359,6 +3495,7 @@ export default {
                 notificationIDList: {},
                 // Do not add default value here, please check init() method
             },
+            xrayParsedInfo: null,
             domainExpiryUnsupportedReason: null,
             checkDomainDebounce: null,
             acceptedStatusCodeOptions: [],
@@ -3402,6 +3539,14 @@ export default {
         },
 
         defaultFriendlyName() {
+            if (this.monitor.type === "xray" && this.xrayParsedInfo?.remark) {
+                return this.xrayParsedInfo.remark;
+            }
+            if (this.monitor.type === "xray-subscription" && this.monitor.xraySubUrl) {
+                try {
+                    return new URL(this.monitor.xraySubUrl).hostname;
+                } catch (_) {}
+            }
             if (this.monitor.hostname) {
                 return this.monitor.hostname;
             }
@@ -3779,6 +3924,22 @@ message HealthCheckResponse {
                 }
             }
 
+            if (newType === "xray") {
+                if (!this.monitor.xrayTestUrl) {
+                    this.monitor.xrayTestUrl = defaultValueList.xray.xrayTestUrl;
+                }
+                if (!this.monitor.accepted_statuscodes || this.monitor.accepted_statuscodes.length === 0) {
+                    this.monitor.accepted_statuscodes = defaultValueList.xray.accepted_statuscodes;
+                }
+                this.onXrayConfigInput();
+            }
+
+            if (newType === "xray-subscription") {
+                if (!this.monitor.xraySubUserAgent) {
+                    this.monitor.xraySubUserAgent = defaultValueList["xray-subscription"].xraySubUserAgent;
+                }
+            }
+
             if (this.monitor.type === "push") {
                 if (!this.monitor.pushToken) {
                     // ideally this would require checking if the generated token is already used
@@ -4131,6 +4292,47 @@ message HealthCheckResponse {
             this.monitor.accepted_statuscodes.push(newCode);
         },
 
+        onXrayConfigInput() {
+            if (!this.monitor.xrayConfig) {
+                this.xrayParsedInfo = null;
+                return;
+            }
+            try {
+                const cfg = this.monitor.xrayConfig.trim();
+                let proto = "xray";
+                const match = cfg.match(/^([a-zA-Z0-9]+):\/\//);
+                if (match) {
+                    proto = match[1].toLowerCase();
+                } else if (cfg.startsWith("{")) {
+                    proto = "json";
+                }
+                this.monitor.xrayProtocol = proto;
+
+                let server = "Custom Node";
+                let port = "";
+                let remark = "";
+
+                if (cfg.includes("@")) {
+                    const afterAt = cfg.slice(cfg.lastIndexOf("@") + 1);
+                    const hostPort = afterAt.split("?")[0].split("#")[0];
+                    server = hostPort.split(":")[0];
+                    port = hostPort.split(":")[1] || "";
+                }
+                if (cfg.includes("#")) {
+                    remark = decodeURIComponent(cfg.slice(cfg.indexOf("#") + 1));
+                }
+
+                this.xrayParsedInfo = {
+                    protocol: proto,
+                    server,
+                    port,
+                    remark,
+                };
+            } catch (_) {
+                this.xrayParsedInfo = null;
+            }
+        },
+
         /**
          * Validate form input
          * @returns {boolean} Is the form input valid?
@@ -4155,6 +4357,20 @@ message HealthCheckResponse {
             if (this.monitor.type === "docker") {
                 if (this.monitor.docker_host == null) {
                     toast.error(this.$t("DockerHostRequired"));
+                    return false;
+                }
+            }
+
+            if (this.monitor.type === "xray") {
+                if (!this.monitor.xrayConfig || !this.monitor.xrayConfig.trim()) {
+                    toast.error(this.$t("XrayConfigRequired"));
+                    return false;
+                }
+            }
+
+            if (this.monitor.type === "xray-subscription") {
+                if (!this.monitor.xraySubUrl || !this.monitor.xraySubUrl.trim()) {
+                    toast.error(this.$t("XraySubUrlRequired"));
                     return false;
                 }
             }
