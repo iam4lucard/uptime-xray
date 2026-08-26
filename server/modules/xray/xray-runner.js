@@ -36,14 +36,15 @@ function getFreePort() {
  * Wait until a local TCP port is accepting connections
  * @param {number} port Port number
  * @param {number} timeoutMs Max wait time in ms
+ * @param {Function} [getStderr] Optional callback returning stderr log
  * @returns {Promise<void>}
  */
-function waitForPort(port, timeoutMs = 2000) {
+function waitForPort(port, timeoutMs = 5000, getStderr = null) {
     const startTime = Date.now();
     return new Promise((resolve, reject) => {
         const check = () => {
             const socket = new net.Socket();
-            socket.setTimeout(200);
+            socket.setTimeout(250);
 
             socket.on("connect", () => {
                 socket.destroy();
@@ -53,7 +54,8 @@ function waitForPort(port, timeoutMs = 2000) {
             socket.on("error", () => {
                 socket.destroy();
                 if (Date.now() - startTime >= timeoutMs) {
-                    reject(new Error(`Timeout waiting for Xray inbound port ${port} to open`));
+                    const extra = getStderr ? getStderr() : "";
+                    reject(new Error(`Timeout waiting for Xray inbound port ${port} to open${extra ? `: ${extra}` : ""}`));
                 } else {
                     setTimeout(check, 50);
                 }
@@ -62,7 +64,8 @@ function waitForPort(port, timeoutMs = 2000) {
             socket.on("timeout", () => {
                 socket.destroy();
                 if (Date.now() - startTime >= timeoutMs) {
-                    reject(new Error(`Timeout waiting for Xray inbound port ${port} to open`));
+                    const extra = getStderr ? getStderr() : "";
+                    reject(new Error(`Timeout waiting for Xray inbound port ${port} to open${extra ? `: ${extra}` : ""}`));
                 } else {
                     setTimeout(check, 50);
                 }
@@ -139,8 +142,8 @@ async function testXrayConfig(options) {
             log.error("xray", `Xray process error: ${err.message}`);
         });
 
-        // Wait for Xray inbound SOCKS & HTTP ports to open
-        await waitForPort(httpPort, 2500);
+        // Wait for Xray inbound SOCKS & HTTP ports to open (up to 5s)
+        await waitForPort(httpPort, 5000, () => stderrLog.trim());
 
         // Perform probe through the local HTTP inbound
         const httpAgent = new HttpProxyAgent(`http://127.0.0.1:${httpPort}`);
